@@ -1,0 +1,249 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="https://cdn.firebase.com/v0/firebase.js"></script>
+    <title>Motovatr</title>
+    <style type="text/css">
+
+        circle {
+            stroke-opacity: .5;
+        }
+
+        .hint{
+            color: grey;
+        }
+
+        #footer{
+            position:absolute;
+            right: 35px;
+            top: 464px;
+        }
+
+        .hint{
+            position:relative;
+            top: -30px;
+            right: -14px;
+            text-align: center;
+        }
+
+        #logo{
+            position:relative;
+            left: 10px;
+        }
+        
+        #tree{
+            position: absolute;
+            left: 226px;
+            top: 29px;
+            width: 500px;
+            z-index: -100;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="body">
+      <img id = "tree" src="tree.png" alt="">
+      <div id="D3area">
+          
+      </div>
+      <div id="footer">
+        <img id="logo" src="logo.png" alt="">
+        <div class="hint">more random than you would've thought possible.</div>
+      </div>
+    </div>
+    
+<script type="text/javascript">
+
+  var myRootRef = new Firebase('https://motovatr.firebaseio.com/');
+  var nodes     = new Array();
+
+  var run_color  = "rgba(47,148,178,0.5)";
+  var walk_color = "rgba(253,119,158,0.5";
+
+  nodes.push( {radius: 20, color: "black"} );
+  nodes.push( {radius: 20, color: "white"} );
+  nodes.push( {radius: 20, color: "white"} );
+  nodes.push( {radius: 20, color: "white"} );
+
+  var w = 1000,
+      h = 1000;
+
+  // spacing between nodes
+  var node_buffer = 0;
+
+  var scale_size = d3.scale.linear()
+                .domain([0, d3.max(nodes, function(d) { return d.radius; })])
+                .range([1, 15]);
+
+  var scale_color = d3.scale.linear()
+                .domain([0, d3.max(nodes, function(d) { return d.radius; })])
+                .range([10, 60]);
+
+  var color = d3.scale.category10();
+
+  var force = d3.layout.force()
+      .gravity(0.05)
+      .charge(function(d, i) { return i ? 0 : -1000; })
+      .nodes(nodes)
+      .size([w, h/2]);
+
+  var root    = nodes[0];
+  root.radius = 0;
+  root.fixed  = true;
+
+  force.start()
+
+  var svg = d3.select("#D3area").append("svg")
+      .attr("width", w)
+      .attr("height", h);
+
+  var circles = svg.selectAll("circle")
+                  .data(nodes.slice(1))
+                  .enter()
+                  .append("circle")
+                  .attr("r", function(d) { return  d.radius; })
+                  .style("fill", function(d, i) { return d.color });
+
+  //decrement lifespan counter
+
+  // setInterval(function(){
+  //     var length = nodes.length
+  //     for (var i = 0; i < length; i++){
+  //         nodes[i].timeLeft -= 1;
+  //     }  
+  // },1000);
+
+
+  force.on("tick", function(e) {
+      
+    var q = d3.geom.quadtree(nodes),
+        i = 0,
+        n = nodes.length;
+
+    while (++i < n) {
+      q.visit(collide(nodes[i]));
+    }
+
+    svg.selectAll("circle")
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+        // .transition()
+        // // .each(function(d,i){
+        // //   if (d.timeLeft <= 0){
+        // //       deleteFromArray(d.day, nodes);
+        // //       circles.data(nodes).exit().transition(1000).style("opacity", 0).remove();
+        // //   }
+        // // });
+        // .style("opacity", function(d){
+        //   if (d.timeLeft <= 0){
+        //       return 0;
+        //   }
+        // });
+
+    // svg.selectAll("text")
+    //     .attr("x", function(d) { return d.x; })
+    //     .attr("y", function(d) { return d.y; });
+
+  });
+
+  svg.on("mousemove", function() {
+    var p1  = d3.mouse(this);
+    root.px = p1[0];
+    root.py = p1[1];
+    force.resume();
+  });
+
+  myRootRef.on('value', function(snapshot){
+
+        var statsRoot = snapshot.val();
+        var run       = statsRoot.users.David.stats.run;
+        var walk      = statsRoot.users.David.stats.walk;
+        var run_num   = Math.floor(run / 1);
+        var walk_num  = Math.floor(walk / 1);
+
+        console.log("running: " + run_num);
+        console.log("walking: " + walk_num);
+
+        //clear array
+        nodes.length = 0;
+        //clear nodes
+        // circles.data(nodes).exit().transition().attr("cx",-100).remove();
+        d3.selectAll("circle").transition().duration(500).style("opacity",0).attr("cy",250).attr("cx",450).remove();
+
+        //add new elements
+        nodes.push( {radius:20, color:"black"});
+
+        for (var i = 0; i < run_num; i++){
+          nodes.push( {radius:20, color: run_color} );
+        }
+         for (var i = 0; i < walk_num; i++){
+          nodes.push( {radius:20, color: walk_color} );
+        }
+
+        force.start();
+
+        circles.data(nodes.slice(1))
+              .enter()
+              .append("circle")
+              .attr("r", function(d) { 
+                  return d.radius; 
+              })
+              .style("stroke","white")
+              .attr("stroke-width","5px")
+              .attr("fill", function(d) { return d.color });
+
+        root        = nodes[0];
+        root.radius = 0;
+        root.fixed  = true;
+      
+  });
+
+  function collide(node) {
+    var r = node.radius,
+        nx1 = node.x - r,
+        nx2 = node.x + r,
+        ny1 = node.y - r,
+        ny2 = node.y + r;
+    return function(quad, x1, y1, x2, y2) {
+      if (quad.point && (quad.point !== node)) {
+        var x = node.x - quad.point.x,
+            y = node.y - quad.point.y,
+            l = Math.sqrt(x * x + y * y),
+            r = node.radius + quad.point.radius + node_buffer;
+        if (l < r) {
+          l = (l - r) / l * .5;
+          node.x       -= x *= l;
+          node.y       -= y *= l;
+          quad.point.x += x;
+          quad.point.y += y;
+        }
+      }
+      return x1 > nx2
+          || x2 < nx1
+          || y1 > ny2
+          || y2 < ny1;
+    };
+  }
+
+  function deleteFromArray(day,array){
+    
+    for (var i = 0; i < array.length; i++){
+      if (array[i].day == day){
+        var index = i;
+        array.splice(index,1);
+      }
+    }
+  }
+
+</script>
+</body>
+
+</html>
