@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+.container>*{
+  display:block;
+  margin:0px auto;
+}
+.arc path {
+  stroke: #fff;
+}
+
+</style>
+<body>
+
+  <div class="container">
+    
+  </div>
+
+<script>
+
+// var dataset = [5,20,14];
+var datasetJSON = [
+
+                {"Name":"David", "Walked":10},
+                {"Name":"Andrew", "Walked":10},
+                {"Name":"Ted", "Walked":20}
+           
+              ];          
+var thisDataset = [];
+
+// console.log(datasetJSON);         
+
+var width  = 700,
+    height = 500,
+    radius = Math.min(width, height) / 2;
+
+var color = d3.scale.category10();
+
+var arc = d3.svg.arc()
+    .outerRadius(radius - 10)
+    .innerRadius(0);
+
+var pie = d3.layout.pie()
+            .value(function(d) { return d.Walked; });
+
+var svg = d3.select(".container").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+//request data from server
+//------------------------
+d3.xhr("http://10.33.45.171/MotovatrPlatfrm/ActivityStats/api?type=group&name=cornell&activity=all", function(error, data){
+
+  // console.log("in here");
+  // if (error) return console.warn(error);
+  console.log("hello");
+  var replacedEquals = data.response.replace(/=/g,":");
+  var scrubbedJson   = replacedEquals.replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2": ');
+
+  var json = jQuery.parseJSON(scrubbedJson) ;
+
+  console.log(json);
+  console.log(json.Andrew.walk);
+
+  for (var key in json) {
+
+    var value = json[key];
+    console.log( "Key is : " + key + " Value is: " + value.walk);
+    thisDataset.push({"Name":key,"Walked":value.walk + 20 * value.run});
+
+  }
+
+  console.log(thisDataset);
+
+  var g = svg.selectAll(".arc")
+      .data(pie(thisDataset))
+    .enter().append("g")
+      .attr("class", "arc");
+
+  g.append("path")
+      .attr("d", arc)
+      .style("fill", function(d,i) { return color(i); });
+
+  g.append("text")
+      .attr("transform", function(d) { return "translate(" + arc.centroid(d) + ")"; })
+      .attr("dy", ".35em")
+      .style("text-anchor", "middle")
+      .attr("font-size","40px")
+      .text(function(d) { return d.data.Name; });
+
+      setInterval(function(){
+        console.log("In here");
+         d3.xhr("http://10.33.45.171/MotovatrPlatfrm/ActivityStats/api?type=group&name=cornell&activity=all",
+          function(data) {
+              thisDataset = [];
+              var replacedEquals = data.response.replace(/=/g,":");
+              var scrubbedJson   = replacedEquals.replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2": ');
+
+              var json = jQuery.parseJSON(scrubbedJson) ;
+
+              for (var key in json) {
+
+                var value = json[key];
+                console.log( "Key is : " + key + " Value is: " + value.walk);
+                thisDataset.push({"Name":key,"Walked":value.walk + 20 * value.run});
+              }
+              console.log(thisDataset);
+
+              svg.selectAll("path")
+               .data(pie(thisDataset))
+               .transition()
+               .attr("d", arc);
+
+              svg.selectAll("text")
+                 .data(pie(thisDataset))
+                 .transition()
+                 .attr("transform", function(d) { 
+                    return "translate(" + arc.centroid(d) + ")"; 
+                  })
+                 .text(function(d) { return d.data.Name; });
+       
+              
+              });
+      }, 500);
+
+});
+
+
+
+
+</script>
