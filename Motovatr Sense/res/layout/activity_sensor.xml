@@ -9,6 +9,12 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".SensorActivity" >
 
+    <TextView
+        android:id="@+id/name_textview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Name:" />
+
     <EditText
         android:id="@+id/username"
         android:layout_width="match_parent"
@@ -17,7 +23,8 @@
     <EditText
         android:id="@+id/group"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/accel_toggle_button"
