@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.cornell.cs5454.lab2.SensorActivity;
+import org.cornell.cs5454.lab2.widgets.FirebaseClient.FirebaseUser;
 
 public class FeatureExtraction {
 
@@ -126,10 +127,9 @@ public class FeatureExtraction {
 			prevActivity = groundTruth;
 
 			String classification = classify(mean, variance, goertzels);
-			FirebaseClient client = new FirebaseClient(SensorActivity.mUsername
+			FirebaseUser user = FirebaseClient.user(SensorActivity.mUsername
 					.getText().toString());
-			client.addActivity(classification);
-
+			user.addActivity(classification);
 			SensorActivity.mAccelDump.recordActivity(classification,
 					groundTruth);
 		}
